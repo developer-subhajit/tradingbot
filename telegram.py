@@ -20,10 +20,12 @@ class TelegramBot:
         # API
         self.base_url = f"https://api.telegram.org/bot{TelegramCredentials.token}/"
         self.log_path = log_path
+        os.makedirs(self.log_path, exist_ok=True)
 
     def make_request(self, func):
         # create a looger instance
-        logger = utils.ExceptionLogger(level="DEBUG", log_path=self.log_path, reraise_on_exception=False)
+        logger = utils.ExceptionLogger(
+            level="DEBUG", log_path=self.log_path, reraise_on_exception=False)
         # create a HTTP request handler
         client = utils.RestClient()
         wrapper = logger.log_exception(client.request(func))
@@ -39,7 +41,8 @@ class TelegramBot:
         Returns:
             dict: The API request parameters.
         """
-        inputs = {"method": "POST", "url": f"{self.base_url}sendMessage", "params": {"chat_id": TelegramCredentials.personal_chat_id, "text": text}}
+        inputs = {"method": "POST", "url": f"{self.base_url}sendMessage", "params": {
+            "chat_id": TelegramCredentials.personal_chat_id, "text": text}}
         return self.make_request(lambda: inputs)
 
     def sendDocument(self, document_path, caption=""):
@@ -92,5 +95,5 @@ class TelegramBot:
 
 
 if __name__ == "__main__":
-    telebot = TelegramBot(log_path=os.getcwd())
+    telebot = TelegramBot(log_path=f"{os.getcwd()}/log")
     telebot.sendMessage("Hello world")
