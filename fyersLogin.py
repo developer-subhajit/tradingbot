@@ -202,7 +202,6 @@ class FyersLogin(FyersCredentials, utils.ExceptionLogger):
         return fyersModel.FyersModel(
             client_id=self.client_id,
             token=self.access_token,
-            log_path=f"{self.log_path}",
         )
 
 
