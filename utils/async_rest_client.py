@@ -1,5 +1,6 @@
 import json
 import httpx
+import asyncio
 from functools import wraps
 
 
@@ -34,6 +35,14 @@ class AsyncRestClient:
         """
         if method.upper() not in self.VALID_METHODS:
             raise ValueError("Invalid method: {}".format(method))
+
+    def async_run(self, func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            data = asyncio.run(func(*args, **kwargs))
+            return data
+
+        return wrapper
 
     def request(self, func):
         """
@@ -78,6 +87,7 @@ class AsyncRestClient:
 if __name__ == "__main__":
     a = AsyncRestClient()
 
+    @a.async_run
     @a.request
     async def get_example_data():
         return {
@@ -87,10 +97,5 @@ if __name__ == "__main__":
             "params": {"id": 125},
         }
 
-    import asyncio
-
-    async def main():
-        data = await get_example_data()
-        print(data)
-
-    asyncio.run(main())
+    data = get_example_data()
+    print(data)
