@@ -2,6 +2,8 @@ import json
 from bs4 import BeautifulSoup
 import requests
 import concurrent.futures
+import utils
+
 
 class UpdateSectorMap:
     """
@@ -28,9 +30,10 @@ class UpdateSectorMap:
     """
 
     def __init__(self):
-        self.base_url = 'https://www.niftyindices.com'
-        self.headers = {'User-Agent': 'Mozilla/5.0'}
+        self.base_url = "https://www.niftyindices.com"
+        self.headers = {"User-Agent": "Mozilla/5.0"}
 
+    @utils.retry(max_attempts=5, initial_delay=2, backoff_factor=3)
     def _getResponse(self, url):
         """
         Fetches an HTTP response from a given URL.
@@ -47,6 +50,7 @@ class UpdateSectorMap:
             return response.text
         except requests.exceptions.RequestException as e:
             print(e)
+            raise e
 
     def _mapFile(self, endpoint):
         """
@@ -61,8 +65,8 @@ class UpdateSectorMap:
         url = f"{self.base_url}{endpoint}"
         response = self._getResponse(url)
 
-        soup = BeautifulSoup(response, 'html.parser')
-        links = soup.select('.tabinsaidmenu li a')
+        soup = BeautifulSoup(response, "html.parser")
+        links = soup.select(".tabinsaidmenu li a")
         map_link = {link.get_text(): f"https://www.niftyindices.com/{link.get('href')}" for link in links}
         return map_link
 
@@ -74,14 +78,15 @@ class UpdateSectorMap:
             sector (str): The name of the sector.
             url (str): The URL to fetch data from.
         """
+        print(f"Fetching data for {sector} from {url}...")
         try:
             response = self._getResponse(url=url)
-            soup = BeautifulSoup(response, 'html.parser')
-            links_with_index_constituent = soup.find_all('a', href=lambda href: href and '/IndexConstituent/' in href)
+            soup = BeautifulSoup(response, "html.parser")
+            links_with_index_constituent = soup.find_all("a", href=lambda href: href and "/IndexConstituent/" in href)
 
             for link in links_with_index_constituent:
-                href = link.get('href')
-                filename = href.split('/')[-1]
+                href = link.get("href")
+                filename = href.split("/")[-1]
                 self.datafile[sector.lower()] = filename
 
         except requests.exceptions.RequestException as e:
@@ -92,20 +97,22 @@ class UpdateSectorMap:
         Updates the sector map and saves it to a JSON file.
         """
         self.datafile = {}
-        map_link = self._mapFile(endpoint='/indices/equity/')
+        map_link = self._mapFile(endpoint="/indices/equity/")
 
-        with concurrent.futures.ThreadPoolExecutor() as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             futures = {executor.submit(self._fetch_datafile, sector, url): (sector, url) for sector, url in map_link.items()}
 
             concurrent.futures.wait(futures)
 
-        with open('SectorMap.json', 'w') as json_file:
+        with open("SectorMap.json", "w") as json_file:
             json.dump(self.datafile, json_file, indent=4)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     import time
+
     start_time = time.perf_counter()
     UpdateSectorMap().updateSector()
     end_time = time.perf_counter()
     execution_time = end_time - start_time
-    print(f'Execution time: {execution_time} seconds')
+    print(f"Execution time: {execution_time} seconds")
