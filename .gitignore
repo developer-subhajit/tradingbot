@@ -4,3 +4,4 @@
 *.pickle
 *.lock
 *.ipynb
+*.gzip
