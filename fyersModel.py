@@ -488,8 +488,9 @@ class FyersModel:
 
         # Reindex the historical data to match the date range, forward fill missing data, and drop NaN values
         historical_data = historical_data.reindex(date_range).ffill().dropna()
+        historical_data.index.name = "date"
 
         # Remove the "timestamp" and "time" columns
         historical_data = historical_data.drop(columns=["timestamp", "time"])
 
-        return historical_data
+        return historical_data.reset_index()
