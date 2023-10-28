@@ -4,3 +4,4 @@ from .logger import ExceptionLogger
 from .measure_execution_time_decorator import MeasureExecutionTime
 from .retry_exception import retry
 from .freezeargs import freezeargs
+from .read_url import read_url
