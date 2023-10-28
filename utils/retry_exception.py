@@ -2,7 +2,7 @@ import time
 from functools import wraps
 
 
-def retry(max_attempts=3, initial_delay=3, backoff_factor=2):
+def retry(max_attempts=3, initial_delay=3, backoff_factor=2, do_print: bool = True):
     """
     Retry decorator with exponential backoff on exception.
 
@@ -37,17 +37,16 @@ def retry(max_attempts=3, initial_delay=3, backoff_factor=2):
                     result = func(*args, **kwargs)  # First attempt
                     return result
                 except Exception as error:
-                    remaining_attempts -= 1      # Consume an attempt
-                    time.sleep(current_delay)    # Wait...
+                    remaining_attempts -= 1  # Consume an attempt
+                    time.sleep(current_delay)  # Wait...
                     current_delay *= backoff_factor  # Make future wait longer
-                    print(
-                        f'Error occurred while executing {func.__name__}. \nRetrying ...')
+                    if do_print:
+                        print(f"Error occurred while executing {func.__name__}. \nRetrying ...")
                     if remaining_attempts <= 0:
                         raise error
 
-            raise Exception(
-                f"Failed to execute {func.__name__} after {max_attempts} attempts. ")
+            raise Exception(f"Failed to execute {func.__name__} after {max_attempts} attempts. ")
 
-        return wrapped_function  
+        return wrapped_function
 
     return retry_decorator
