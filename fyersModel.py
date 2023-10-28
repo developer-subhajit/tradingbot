@@ -348,7 +348,7 @@ class FyersModel:
             "data": data,
         }
 
-    @utils.retry(max_attempts=5, initial_delay=2, backoff_factor=2)
+    @utils.retry(max_attempts=5, initial_delay=2, backoff_factor=2, do_print=False)
     @client.request
     def history(self, data: dict):
         """
