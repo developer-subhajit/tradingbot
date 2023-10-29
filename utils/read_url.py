@@ -25,8 +25,6 @@ def read_url(url, headers=None, columns=None):
         # Raise an HTTPError for bad status codes
         response.raise_for_status()
 
-        # Convert the response content to a DataFrame (assuming it's CSV)
-        df = pd.read_csv(io.StringIO(response.text), names=columns)
-        return df
+        return pd.read_csv(io.StringIO(response.text), names=columns)
     except requests.exceptions.RequestException as e:
         raise e  # Re-raise the original exception

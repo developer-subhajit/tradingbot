@@ -35,7 +35,7 @@ class RestClient:
             ValueError: If the method is not valid.
         """
         if method.upper() not in self.VALID_METHODS:
-            raise ValueError("Invalid method: {}".format(method))
+            raise ValueError(f"Invalid method: {method}")
 
     def request(self, func):
         """
