@@ -1,6 +1,5 @@
 import os
 import pyotp
-import pandas as pd
 from urllib.parse import parse_qs, urlparse
 import utils as utils
 
