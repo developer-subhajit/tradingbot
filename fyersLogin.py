@@ -74,12 +74,11 @@ class FyersLogin(FyersCredentials, utils.ExceptionLogger):
         Returns:
             dict: Input data for the request.
         """
-        inputs = {
+        return {
             "method": "POST",
             "url": f"{self.loginAPI}{self.otp}",
             "json": {"fy_id": self.fyers_id, "app_id": self.app_id},
         }
-        return inputs
 
     @client.request
     def _verifyTOTP(self):
@@ -89,7 +88,7 @@ class FyersLogin(FyersCredentials, utils.ExceptionLogger):
         Returns:
             dict: Input data for the request.
         """
-        inputs = {
+        return {
             "method": "POST",
             "url": f"{self.loginAPI}{self.totp}",
             "json": {
@@ -97,7 +96,6 @@ class FyersLogin(FyersCredentials, utils.ExceptionLogger):
                 "otp": pyotp.TOTP(self.totp_key).now(),
             },
         }
-        return inputs
 
     @client.request
     def _verifyPIN(self):
@@ -107,7 +105,7 @@ class FyersLogin(FyersCredentials, utils.ExceptionLogger):
         Returns:
             dict: Input data for the request.
         """
-        inputs = {
+        return {
             "method": "POST",
             "url": f"{self.loginAPI}{self.pin}",
             "json": {
@@ -117,7 +115,6 @@ class FyersLogin(FyersCredentials, utils.ExceptionLogger):
                 "recaptcha_token": "",
             },
         }
-        return inputs
 
     @client.request
     def _generateAuthCode(self):
@@ -127,7 +124,7 @@ class FyersLogin(FyersCredentials, utils.ExceptionLogger):
         Returns:
             dict: Input data for the request.
         """
-        inputs = {
+        return {
             "method": "POST",
             "url": f"{self.API}{self.token}",
             "json": {
@@ -142,9 +139,10 @@ class FyersLogin(FyersCredentials, utils.ExceptionLogger):
                 "response_type": "code",
                 "create_cookie": True,
             },
-            "headers": {"authorization": f"Bearer {self.data['data']['access_token']}"},
+            "headers": {
+                "authorization": f"Bearer {self.data['data']['access_token']}"
+            },
         }
-        return inputs
 
     def _generate_access_token(self):
         """
