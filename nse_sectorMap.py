@@ -67,8 +67,10 @@ class UpdateSectorMap:
 
         soup = BeautifulSoup(response, "html.parser")
         links = soup.select(".tabinsaidmenu li a")
-        map_link = {link.get_text(): f"https://www.niftyindices.com/{link.get('href')}" for link in links}
-        return map_link
+        return {
+            link.get_text(): f"https://www.niftyindices.com/{link.get('href')}"
+            for link in links
+        }
 
     def _fetch_datafile(self, sector, url):
         """
