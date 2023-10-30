@@ -14,9 +14,10 @@ def read_url(url, headers=None, columns=None):
     Args:
         url (str): The URL to fetch data from.
         headers (dict, optional): Headers to include in the HTTP request (default is None).
+        columns (list, optional): List of column names for the DataFrame (default is None).
 
     Returns:
-        dict: The JSON response content, or an empty dictionary if the request fails or JSON parsing fails.
+        pd.DataFrame: The DataFrame containing the data from the CSV response, or None if the request fails or parsing fails.
     """
     try:
         # Send an HTTP GET request to the URL with optional headers

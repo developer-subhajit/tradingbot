@@ -30,7 +30,7 @@ class FyersModel:
         """
         self.client_id = client_id
         self.access_token = token
-        self.header = "{}:{}".format(self.client_id, self.access_token)
+        self.header = f"{self.client_id}:{self.access_token}"
         self.content = "application/json"
         self.headers = {
             "Authorization": self.header,
@@ -140,7 +140,9 @@ class FyersModel:
         """
         id_list = data.get("id").split(",")
         response = self.orderbook()
-        response["orderBook"] = [order for order in response["orderBook"] if order["id"] in id_list]
+        response["orderBook"] = [
+            order for order in response["orderBook"] if order["id"] in id_list
+        ]
 
         return response
 
@@ -431,7 +433,11 @@ class FyersModel:
         while current_date <= data.get("range_to"):
             temp_dict = dict(range_from=current_date)
             current_date += datetime.timedelta(days=allowed_day_difference)
-            temp_dict["range_to"] = current_date - datetime.timedelta(days=1) if current_date <= data.get("range_to") else data.get("range_to")
+            temp_dict["range_to"] = (
+                current_date - datetime.timedelta(days=1)
+                if current_date <= data.get("range_to")
+                else data.get("range_to")
+            )
             data_list.append({**data, **temp_dict})
         return data_list
 
@@ -440,14 +446,18 @@ class FyersModel:
         df = pd.DataFrame(response["candles"], columns=columns)
 
         # Convert 'date' to datetime and set it as the index
-        df["timestamp"] = pd.to_datetime(df["date"], unit="s") + datetime.timedelta(hours=5, minutes=30)
+        df["timestamp"] = pd.to_datetime(df["date"], unit="s") + datetime.timedelta(
+            hours=5, minutes=30
+        )
         df["date"] = df["timestamp"].dt.date
         df["time"] = df["timestamp"].dt.time
         df = df.set_index("timestamp")
 
         # Add 'symbol' column and return selected columns
         df["symbol"] = data.get("symbol")
-        return df[["date", "time", "open", "high", "low", "close", "volume", "symbol"]]
+        return df[
+            ["date", "time", "open", "high", "low", "close", "volume", "symbol"]
+        ]
 
     @utils.freezeargs
     @functools.lru_cache(maxsize=100)
@@ -458,7 +468,12 @@ class FyersModel:
         with concurrent.futures.ThreadPoolExecutor(5) as executor:
             responses = list(executor.map(self.history, data_list))
 
-        ohlcv_data = pd.concat([self.convert_to_OHLCV(data, response) for data, response in zip(data_list, responses)])
+        ohlcv_data = pd.concat(
+            [
+                self.convert_to_OHLCV(data, response)
+                for data, response in zip(data_list, responses)
+            ]
+        )
         return ohlcv_data
 
     @utils.freezeargs
@@ -481,10 +496,16 @@ class FyersModel:
         historical_data = historical_data.reset_index().set_index("date")
 
         # Remove duplicate index values, keeping the first occurrence
-        historical_data = historical_data[~historical_data.index.duplicated(keep="first")]
+        historical_data = historical_data[
+            ~historical_data.index.duplicated(keep="first")
+        ]
 
         # Create a date range based on specified start and end dates
-        date_range = pd.date_range(start=pd.to_datetime(data.get("range_from")), end=pd.to_datetime(data.get("range_to")), freq="D")
+        date_range = pd.date_range(
+            start=pd.to_datetime(data.get("range_from")),
+            end=pd.to_datetime(data.get("range_to")),
+            freq="D",
+        )
 
         # Reindex the historical data to match the date range, forward fill missing data, and drop NaN values
         historical_data = historical_data.reindex(date_range).ffill().dropna()

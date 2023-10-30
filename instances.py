@@ -37,7 +37,9 @@ def get_instance(logdir: Path):
 
     if not is_current(fyers_fname):
         # initiate fyers login instance
-        fyers = fyersLogin.FyersLogin(log_path=logdir, teleBot=telegramBot).__call__()
+        fyers = fyersLogin.FyersLogin(
+            log_path=logdir, teleBot=telegramBot
+        ).__call__()
         with open(fyers_fname, "wb") as file:
             dill.dump(fyers, file, byref=False, recurse=True)
     else:
