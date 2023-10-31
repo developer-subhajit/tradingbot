@@ -98,6 +98,7 @@ class FyersModel:
             "params": None,
         }
 
+    @property
     @client.request
     def holdings(self) -> dict:
         """
