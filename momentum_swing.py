@@ -36,7 +36,7 @@ class MomentumSwing:
     def _initiate(self):
         self.telegramBot, self.FyersClient = instances.get_instance(self.log_dir)
 
-    def getSymbols(self, index: str) -> list:
+    def getSymbols(self) -> list:
         # common headers
         headers = {"User-Agent": "Mozilla/5.0"}
 
@@ -44,7 +44,7 @@ class MomentumSwing:
         with open("SectorMap.json", "r") as json_file:
             filenames = json.load(json_file)
 
-        filename = filenames.get(index.lower())
+        filename = filenames.get(self.index.lower())
         stock_details = utils.read_url(
             url=f"https://www.niftyindices.com/IndexConstituent/{filename}",
             headers=headers,
@@ -96,7 +96,7 @@ class MomentumSwing:
 
     def update_historical_data(self):
         #  import symbols
-        symbols = self.getSymbols(index=self.index)
+        symbols = self.getSymbols()
 
         # import stored historical data
         fpath, historical_data = self.import_historical_data
@@ -112,31 +112,45 @@ class MomentumSwing:
         ].copy()
         input_data = []
         for symbol in symbols:
-            if stock_data := hist_data(symbol):
+            stock_data = hist_data(symbol)
+            if len(stock_data):
                 if stock_data.date.dt.date.max() != datetime.datetime.now().date():
                     temp_data = {
                         "symbol": symbol,
                         "range_from": stock_data.date.dt.date.max()
                         + datetime.timedelta(days=1),
                     }
-                    input_data.append(
-                        {
-                            data | temp_data,
-                        }
-                    )
+                else:
+                    temp_data = {
+                        "symbol": symbol,
+                        "range_from": datetime.datetime.now().date(),
+                    }
+
             else:
                 print(f"No stock data available for {symbol}")
-                input_data.append(
-                    {
-                        **data,
-                        **{
-                            "symbol": symbol,
-                            "range_from": datetime.date(2010, 1, 1),
-                        },
-                    }
-                )
+                temp_data = {
+                    "symbol": symbol,
+                    "range_from": datetime.date(2010, 1, 1),
+                }
+            input_data.append(data | temp_data)
 
         updated_data = [self.FyersClient.history_daily(data) for data in input_data]
+        #  update the historical data file with recent data
+        historical_data = pd.concat([historical_data, *updated_data])
+        historical_data.to_parquet(fpath, compression="gzip", index=None)
+        return historical_data
+
+    def get_momentum(self, historical_data, symbol):
+        symbolData = historical_data[historical_data.symbol == symbol].copy()
+        symbolData["date"] = pd.to_datetime(symbolData["date"], format="%Y-%m-%d")
+        symbolData.set_index("date", inplace=True)
+        symbolData.sort_index(inplace=True)
+        weekly_returns = symbolData.resample("W-FRI")["close"].last().pct_change()
+        short_term_returns = (
+            weekly_returns.rolling(window=12).apply(lambda x: (x + 1).prod() - 1).round(5)
+        )
+        symbolData["momentum"] = short_term_returns
+        return symbolData
 
 
 if __name__ == "__main__":
