@@ -16,6 +16,7 @@ fyers-apiv3 = "3.0.5"
 dill = "0.3.7"
 frozendict = "*"
 bs4 = "*"
+matplotlib = "*"
 
 [dev-packages]
 ipykernel = "*"
