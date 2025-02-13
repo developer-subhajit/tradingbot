@@ -1,3 +1,15 @@
+"""
+Momentum Swing Trading Strategy Implementation
+
+This module implements a momentum-based swing trading strategy for stocks listed in specified indices.
+The strategy calculates momentum based on weekly returns over a 12-week period and ranks stocks
+based on their momentum scores. Trading decisions are made based on momentum thresholds and
+portfolio management rules.
+
+Author: Your Name
+License: MIT
+"""
+
 import datetime
 import json
 from pathlib import Path
@@ -8,6 +20,24 @@ import utils
 
 
 class MomentumSwing:
+    """
+    A class implementing momentum-based swing trading strategy.
+    
+    The strategy:
+    1. Fetches historical data for stocks in the specified index
+    2. Calculates weekly returns and momentum indicators
+    3. Ranks stocks based on momentum
+    4. Makes trading decisions based on momentum thresholds
+    5. Manages portfolio according to specified parameters
+    
+    Attributes:
+        cash (float): Initial investment amount
+        index (str): Benchmark index to trade (e.g., "nifty next 50")
+        portfolio_size (int): Number of stocks to hold in portfolio
+        threshold (float): Momentum threshold for trading decisions
+        path (Path): Root directory for data and logs
+    """
+
     def __init__(
         self,
         cash: int | float,
@@ -16,6 +46,16 @@ class MomentumSwing:
         threshold: float = 0.25,
         path: Path = None,
     ):
+        """
+        Initialize the MomentumSwing trading strategy.
+
+        Args:
+            cash: Initial investment amount
+            benchmark_index: Index to trade (e.g., "nifty next 50")
+            portfolio_size: Number of stocks to hold in portfolio
+            threshold: Momentum threshold for trading decisions (default: 0.25)
+            path: Root directory for data and logs (default: current directory)
+        """
         self.cash = cash
         self.index = benchmark_index
         self.portfolio_size = portfolio_size
@@ -28,15 +68,23 @@ class MomentumSwing:
         self._initiate
 
     def _join_path(self, directory: Path) -> Path:
+        """Create and return a subdirectory path."""
         new_path = Path.joinpath(self.path, directory)
         Path.mkdir(new_path, exist_ok=True)
         return new_path
 
     @property
     def _initiate(self):
+        """Initialize Telegram bot and Fyers client instances."""
         self.telegramBot, self.FyersClient = instances.get_instance(self.log_dir)
 
     def getSymbols(self) -> list:
+        """
+        Fetch list of stock symbols from the specified index.
+        
+        Returns:
+            list: List of stock symbols in the index
+        """
         # common headers
         headers = {"User-Agent": "Mozilla/5.0"}
 
@@ -55,25 +103,12 @@ class MomentumSwing:
             url="https://public.fyers.in/sym_details/NSE_CM.csv",
             headers=headers,
             columns=(
-                "Fytoken",
-                "Symbol Details",
-                "Exchange Instrument type",
-                "Minimum lot size",
-                "Tick size",
-                "ISIN",
-                "Trading Session",
-                "Last update date",
-                "Expiry date",
-                "Symbol",
-                "Exchange",
-                "Segment",
-                "Scrip code",
-                "Underlying scrip code",
-                "Strike price",
-                "Option type",
-                "Underlying FyToken",
-                "Fytoken1",
-                "NA",
+                "Fytoken", "Symbol Details", "Exchange Instrument type",
+                "Minimum lot size", "Tick size", "ISIN", "Trading Session",
+                "Last update date", "Expiry date", "Symbol", "Exchange",
+                "Segment", "Scrip code", "Underlying scrip code",
+                "Strike price", "Option type", "Underlying FyToken",
+                "Fytoken1", "NA",
             ),
         )
 
@@ -84,6 +119,12 @@ class MomentumSwing:
 
     @property
     def import_historical_data(self):
+        """
+        Import historical price data from parquet file.
+        
+        Returns:
+            tuple: (file path, historical data DataFrame)
+        """
         fpath = Path.joinpath(self.data_dir, "ohlc_data.parquet.gzip")
         try:
             historical_data = pd.read_parquet(fpath)
@@ -95,6 +136,12 @@ class MomentumSwing:
         return fpath, historical_data
 
     def update_historical_data(self):
+        """
+        Update historical price data for all symbols in the index.
+        
+        Returns:
+            DataFrame: Updated historical price data
+        """
         #  import symbols
         symbols = self.getSymbols()
 
@@ -110,6 +157,7 @@ class MomentumSwing:
         hist_data = lambda symbol: historical_data[
             historical_data["symbol"] == symbol
         ].copy()
+        
         input_data = []
         for symbol in symbols:
             stock_data = hist_data(symbol)
@@ -125,7 +173,6 @@ class MomentumSwing:
                         "symbol": symbol,
                         "range_from": datetime.datetime.now().date(),
                     }
-
             else:
                 print(f"No stock data available for {symbol}")
                 temp_data = {
@@ -141,21 +188,41 @@ class MomentumSwing:
         return historical_data
 
     def get_momentum(self, historical_data, symbol):
+        """
+        Calculate momentum indicator for a given symbol.
+        
+        The momentum is calculated as the 12-week rolling product of weekly returns.
+        
+        Args:
+            historical_data: DataFrame containing historical price data
+            symbol: Stock symbol to calculate momentum for
+            
+        Returns:
+            DataFrame: Historical data with momentum indicator
+        """
         symbolData = historical_data[historical_data.symbol == symbol].copy()
         symbolData["date"] = pd.to_datetime(symbolData["date"], format="%Y-%m-%d")
         symbolData.set_index("date", inplace=True)
         symbolData.sort_index(inplace=True)
         weekly_returns = symbolData.resample("W-FRI")["close"].last().pct_change()
         short_term_returns = (
-            weekly_returns.rolling(window=12).apply(lambda x: (x + 1).prod() - 1).round(5)
+            weekly_returns.rolling(window=12)
+            .apply(lambda x: (x + 1).prod() - 1)
+            .round(5)
         )
         symbolData["momentum"] = short_term_returns
         return symbolData
 
 
 if __name__ == "__main__":
-    ms = MomentumSwing(cash=30000, benchmark_index="nifty next 50", portfolio_size=5)
-    print(ms.update_historical_data())
+    # Example usage
+    ms = MomentumSwing(
+        cash=30000,
+        benchmark_index="nifty next 50",
+        portfolio_size=5
+    )
+    historical_data = ms.update_historical_data()
+    print("Historical data updated successfully")
 
 
 """
